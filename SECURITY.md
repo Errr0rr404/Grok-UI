@@ -18,8 +18,9 @@ Include the affected version, deployment topology, reproduction steps, and impac
 - Set a long, random `GROK_UI_TOKEN` before any non-loopback bind.
 - Terminate TLS in front of the server on untrusted networks.
 - Treat authenticated access as equivalent to local developer access: the UI can display conversations and source diffs and can instruct Grok to use tools.
-- Run Grok UI as the same unprivileged user who owns the intended `~/.grok` directory.
-- Do not expose port `4310` directly to the public internet.
+- Run Grok UI as the same unprivileged user who owns the intended Grok state directory (`GROK_HOME`).
+- Git inspection is limited to the dashboard process working directory and workspaces already associated with a recorded, live, or managed session.
+- Do not expose the dashboard or host-agent listen ports directly to the public internet.
 - Treat generated preview applications as untrusted local development code.
   Inspect the displayed package command before starting it, and stop previews
   when they are no longer needed.

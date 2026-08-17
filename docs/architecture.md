@@ -10,7 +10,14 @@ each host's local ACP controller authoritative.
 
 `LiveMonitor` watches `active_sessions.json` plus bounded tails of active `events.jsonl` and `updates.jsonl` files. Filesystem events are debounced and projected into a small `LiveSnapshot`, then delivered through server-sent events.
 
-Historical aggregate views use `summary.json` and `signals.json`. The Session Workbench reads bounded tails of `updates.jsonl` and, for older sessions without structured updates, `chat_history.jsonl`. Memory bodies, system prompts, raw terminal history, and authentication files are not read.
+Historical aggregate views use `summary.json` and `signals.json`. The Session
+Console reads bounded tails of `updates.jsonl` and, for older sessions without
+structured updates, `chat_history.jsonl`. Memory bodies, system prompts, raw
+terminal history, and authentication files are not read.
+
+The HTTP handler for that console is still `/api/sessions/:id/workbench`. The
+user-facing label is **Session Console**; the React module remains
+`src/views/SessionWorkbench.tsx`.
 
 ## Control plane
 
@@ -53,11 +60,26 @@ older state in place. If the server exits during a turn, the lane restores as
 idle with a `server_restarted` stop reason; the user can explicitly resume it
 through `session/load` and `session/prompt`.
 
+## Runtime intelligence plane
+
+`RuntimeInspector` walks process descendants of known Grok and UI-managed PIDs
+only. It discovers listening TCP ports for that selected set, classifies common
+databases and development services without connecting to them, and projects
+structured test status plus external-call categories from existing safe tool
+titles. Inspection uses fixed timeouts, output, process-count, and tree-depth
+caps. Raw command arguments, credentials, headers, and unrelated host processes
+are not included in the browser contract.
+
 ## Workspace plane
 
-`WorkspaceInspector` runs argument-separated Git commands against workspaces associated with recorded or controlled Grok sessions. It never invokes a shell.
+`WorkspaceInspector` runs argument-separated Git commands (`git -C …`) against
+allowed working directories. It never invokes a shell.
 
-Diff paths are resolved beneath the repository root. Reads are bounded, binary content is not rendered, and untracked files are represented without leaving the repository.
+A workspace is allowed when it is the Grok UI process current working
+directory, or when it matches a recorded, live, or managed session `cwd`.
+Diff paths are resolved beneath the repository root. Reads are bounded, binary
+content is not rendered, and untracked files are represented without leaving
+the repository.
 
 ## Preview plane
 
@@ -256,7 +278,11 @@ a second `ARCHITECTURE.md`; update this map when ownership moves.
 | Polling, compatibility, health, freshness, and aggregation | `server/fleet-monitor.ts` |
 | Central authenticated routes and local composition root | `server/index.ts` |
 | Local loopback preview lifecycle and bounded logs | `server/preview-supervisor.ts` |
+| Bounded process-tree, port, and service inspection | `server/runtime-inspector.ts` |
+| Local token/cost budgets and alerts | `server/usage-budgets.ts` |
+| Authenticated usage export | `server/usage-export.ts` |
 | Remote managed-session console | `src/views/RemoteSessionWorkbench.tsx` |
+| Local Session Console | `src/views/SessionWorkbench.tsx` |
 | Durable local session/usage state | `server/session-state.ts`, `server/usage-ledger.ts` |
 
 Dependencies flow from page and panel rendering into shared client types and

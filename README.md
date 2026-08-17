@@ -6,14 +6,15 @@
 
 **Every Grok session — one living command center.**
 
-An unofficial, local-first dashboard for Grok Build:
-watch active agents, control sessions over ACP, inspect Git changes,
-and move through your complete local history without leaving the browser.
+An unofficial, local-first dashboard for people who already run
+[Grok Build](https://github.com/xai-org/grok-build) on machines they operate.
+Watch active agents, control sessions over ACP, inspect Git changes,
+and move through local history without leaving the browser.
 
 ![Node.js 22+](https://img.shields.io/badge/Node.js-22%2B-5FA04E?logo=nodedotjs&logoColor=white)
 ![React 19](https://img.shields.io/badge/React-19-149ECA?logo=react&logoColor=white)
-![Grok Build](https://img.shields.io/badge/Grok%20Build-native-111318)
-![Local first](https://img.shields.io/badge/privacy-local--first-D9FF43?labelColor=111318)
+![Express 5](https://img.shields.io/badge/Express-5-000000?logo=express&logoColor=white)
+![Vite 8](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)
 ![License: MIT](https://img.shields.io/badge/license-MIT-E44738)
 
 <a href="https://raw.githubusercontent.com/joeynyc/Grok-UI/main/docs/grok-ui-dashboard.png">
@@ -29,6 +30,17 @@ and move through your complete local history without leaving the browser.
 
 > [!NOTE]
 > Grok UI is an independent community project. It is not affiliated with or endorsed by xAI.
+
+## Who it is for
+
+Grok UI is a single-user companion for developers who already use the Grok CLI
+locally, or who operate a small set of their own machines. It is not a hosted
+multi-tenant service and does not replace the CLI.
+
+You need a working `grok` install and Grok Build account access. The dashboard
+does not scrape the terminal UI or send Grok credentials to the browser.
+Optional Fleet monitoring and remote sessions are for hosts you register
+yourself.
 
 ## What it does
 
@@ -118,6 +130,48 @@ authenticated read-only protocol and expose remote sessions only through a
 second, explicitly enabled control credential. Grok credentials and host-agent
 tokens never enter the browser.
 
+Longer design notes live in [docs/architecture.md](docs/architecture.md).
+Versioned delivery plans live in [docs/roadmap.md](docs/roadmap.md).
+
+## Stack
+
+Versions come from [`package.json`](package.json). Engines require **Node.js 22
+or newer**. CI verifies Node 22 and 24.
+
+| Layer | From the manifest |
+| --- | --- |
+| Runtime | Node.js `>=22` |
+| UI | React `^19`, Vite `^8`, TypeScript `^7` |
+| API | Express `^5` |
+| Agent control | `@agentclientprotocol/sdk` `^1.3` |
+| File watching | chokidar `^5` |
+| Unit tests | Vitest `^3` |
+| Browser tests | Playwright `^1` |
+| Dev orchestration | concurrently `^10` |
+
+## Dashboard
+
+Twelve primary views, plus Session Console overlays:
+
+| View | What you see |
+| --- | --- |
+| **Live** | Active Grok processes, event stream, bounded runtime intelligence |
+| **Control** | New and resumed ACP lanes, approvals, stop/resume |
+| **Runs** | Cross-session workflow field and safe local controls |
+| **Changes** | Live Git status and bounded diffs |
+| **Overview** | Session counts, tools, model mix, workspaces |
+| **Sessions** | Searchable local archive, active vs archived |
+| **Activity** | Two-week turns, tools, line movement, errors |
+| **Usage** | Provenance-aware ledger, budgets, JSON/CSV export |
+| **Fleet** | Registered hosts, remote telemetry, opt-in remote sessions |
+| **Library** | Local skills, agent profiles, marketplace plugin names |
+| **Memory** | Metadata-only inventory of durable Markdown memory |
+| **Themes** | Operator, Event Horizon, Minimal Calm |
+
+A command palette (`⌘ K` / `Ctrl K`, or `/`) jumps to a view or local session.
+Number keys and the `u` / `f` shortcuts switch views. Optional browser
+notifications fire when a live agent or permission queue needs input.
+
 ## Quickstart
 
 ### Requirements
@@ -179,11 +233,9 @@ npm run doctor
 npm start
 ```
 
-`npm start` creates the production build automatically when it is missing.
-For file-watching development, use `npm run dev`.
-
-The versioned delivery plan is maintained in
-[`docs/roadmap.md`](docs/roadmap.md).
+`npm start` creates the production build automatically when it is missing,
+then serves `dist/` and `dist-server/`. For file-watching development, use
+`npm run dev` (Express API plus Vite; Vite proxies `/api` to the local API).
 
 The first launch opens a live setup diagnostic that distinguishes a missing
 CLI, an unauthenticated account, and a profile that simply has not created its
@@ -200,6 +252,7 @@ first session yet. Machine-specific paths are never included in those checks.
 | `--grok-home <path>` | Use a specific Grok state directory |
 | `--state-dir <path>` | Use a specific private Grok UI state directory |
 | `--no-open` | Start without opening a browser |
+| `--help` | Print CLI usage |
 | `--version` | Print the installed Grok UI version |
 
 ## Live runtime
@@ -371,7 +424,8 @@ Theme selection stays in local browser storage and never changes session data.
   after 3.5 seconds, and cap responses at 2 MiB.
 - Fleet URLs are restricted by transport, and the connector accepts only fixed
   `/agent/v1/` protocol paths.
-- Diff access is restricted to workspaces associated with known sessions.
+- Diff access is limited to the dashboard process working directory and
+  workspaces associated with known sessions.
 - Grok UI contains no analytics or product telemetry.
 - Repository screenshots and diagrams use sanitized demo data only.
 
@@ -388,60 +442,117 @@ See [SECURITY.md](SECURITY.md) for the full deployment and reporting guidance.
 
 ## Configuration
 
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `HOST` | loopback | API bind interface |
-| `PORT` | `4310` | API port |
-| `GROK_HOME` | `~/.grok` | Grok state directory |
-| `GROK_BIN` | `grok` | Grok executable used by the ACP controller |
-| `GROK_UI_TOKEN` | empty | Required for non-loopback binding |
-| `GROK_UI_STATE_DIR` | `~/.grok-ui` | Private annotations and managed-session state |
-| `GROK_UI_AGENT_TOKEN` | empty | Required dedicated bearer token for host-agent mode |
-| `GROK_UI_AGENT_CONTROL_TOKEN` | empty | Optional, distinct token that enables secure remote sessions on the host |
-| `GROK_UI_AGENT_HOST` | `127.0.0.1` | Host-agent bind interface |
-| `GROK_UI_AGENT_PORT` | `4311` | Host-agent port |
-| `GROK_UI_AGENT_LABEL` | system hostname | Optional host label advertised by the agent |
+These environment variables are read by the CLI, doctor, dashboard, and host
+agent. Do not put secrets in the repository. Non-loopback dashboard binds
+require `GROK_UI_TOKEN`. Host-agent mode always requires `GROK_UI_AGENT_TOKEN`.
+
+| Variable | Purpose |
+| --- | --- |
+| `HOST` | Dashboard API bind interface |
+| `PORT` | Dashboard API listen port |
+| `GROK_HOME` | Grok state directory |
+| `GROK_BIN` | Grok executable used by the ACP controller and doctor |
+| `GROK_UI_TOKEN` | Dashboard access token; required when `HOST` is not loopback |
+| `GROK_UI_STATE_DIR` | Private annotations, usage state, fleet registry, and command evidence |
+| `GROK_UI_AGENT_TOKEN` | Dedicated bearer token for host-agent monitoring |
+| `GROK_UI_AGENT_CONTROL_TOKEN` | Distinct token that enables secure remote sessions on the host |
+| `GROK_UI_AGENT_HOST` | Host-agent bind interface |
+| `GROK_UI_AGENT_PORT` | Host-agent listen port |
+| `GROK_UI_AGENT_LABEL` | Optional host label advertised by the agent |
+
+CLI flags `--host`, `--port`, `--grok-home`, and `--state-dir` set the matching
+variables for one process (`GROK_UI_AGENT_HOST` / `GROK_UI_AGENT_PORT` in
+`agent` mode).
 
 ## Commands
 
 ```bash
-npm run dev       # Run API and Vite with file watching
-npm run doctor    # Check Node, Grok CLI, authentication, and local state
-npm run setup     # Run preflight checks and create a production build
-npm run check     # Type-check client and server
-npm test          # Run unit and integration tests
-npm run test:e2e  # Run production browser onboarding and control tests
-npm run build     # Produce client and server builds
-npm run verify    # Check, test, and build
-npm run release:check # Audit the exact package contents
+npm run dev           # API (tsx watch) + Vite with file watching
+npm run doctor        # Check Node, Grok CLI, authentication, and local state
+npm run setup         # Run preflight checks and create a production build
+npm run check         # Type-check client and server
+npm test              # Vitest unit and integration tests under server/ and src/
+npm run test:e2e      # Build, then Playwright onboarding, control, and fleet tests
+npm run test:e2e:report # Open the last Playwright HTML report
+npm run test:soak     # 75-second managed-session soak (also used by tagged releases)
+npm run build         # Produce client (dist/) and server (dist-server/) builds
+npm run verify        # check + test + build + release:check
+npm run release:check # Audit the exact npm pack contents
 npm run test:package  # Install and launch the packed artifact in isolation
-npm start         # Build when needed, then serve the production app
-npm run agent     # Serve the built host agent; control remains opt-in
-npm run serve     # Serve an existing production build without rebuilding
+npm start             # Build when needed, then serve the production app
+npm run agent         # Serve the built host agent; control remains opt-in
+npm run serve         # Serve an existing production build without rebuilding
 ```
+
+`npm test` covers parsing, ACP control, workflow projection, usage, fleet
+protocol, workspace, security, setup, and Privacy Mode. `npm run test:e2e`
+starts a production server against a fake `grok` binary; it does not call a
+real model. Set `PLAYWRIGHT_BROWSER=webkit` to run the Safari engine locally.
+CI runs Chromium and WebKit.
+
+## Continuous integration
+
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on pushes to
+`main` and on pull requests:
+
+- **verify** — `npm run verify` and a high-severity production audit on Node 22 and 24
+- **package-smoke** — isolated pack/install/launch on Ubuntu and macOS
+- **browser-e2e** — Playwright Chromium and WebKit against the production build
+
+Dependabot watches npm and GitHub Actions monthly.
+
+## Deploy and release
+
+Grok UI is not a cloud app. Typical use is local:
+
+1. `npx --yes grok-ui` or `npm start` on the machine that owns `GROK_HOME`.
+2. Open the printed localhost URL.
+3. For another device, use an SSH tunnel or a private Tailscale network. Set
+   `GROK_UI_TOKEN` before binding the dashboard beyond loopback, and terminate
+   TLS in front of the process. Do not expose the listen port to the public
+   internet.
+4. To monitor or control another machine, run `grok-ui agent` there and
+   register it in Fleet. See [Secure remote sessions](#secure-remote-sessions).
+
+The public npm package is [`grok-ui`](https://www.npmjs.com/package/grok-ui).
+Pushing an annotated `v*` tag runs
+[`.github/workflows/release.yml`](.github/workflows/release.yml): verify,
+audit, Playwright, soak, package smoke, `npm pack`, trusted npm publish, and a
+GitHub Release that attaches the tarball. See
+[docs/releasing.md](docs/releasing.md).
 
 ## Repository map
 
 ```text
+bin/grok-ui.mjs           packaged CLI (start, agent, doctor, flags)
+scripts/                  start, doctor, release-check, package-smoke, e2e, soak
 server/
+  index.ts                Express app, SSE, API routes
   grok-controller.ts      ACP lifecycle, prompts, approvals, cancellation
   workflow-state.ts       workflow notification projection and safe controls
   live-monitor.ts         active process and runtime event projection
+  runtime-inspector.ts    bounded process-tree, port, and service inspection
   usage-ledger.ts         provenance-aware durable usage reporting
+  usage-budgets.ts        local token/cost budgets and deduplicated alerts
+  usage-export.ts         authenticated JSON/CSV usage export
   session-projection.ts   shared local session-to-row projection
   host-agent.ts           read-only monitoring and opt-in session control
+  host-agent-entry.ts     standalone host-agent process entry
   remote-command-store.ts durable command reconciliation and audit evidence
   fleet-protocol.ts       versioned parsing, caps, and host namespacing
   fleet-registry.ts       atomic private connection registry
   fleet-connectors.ts     bounded direct, Tailscale, and SSH transports
   fleet-monitor.ts        polling, compatibility, health, and freshness
-  grok-store.ts           historical metadata aggregation
+  grok-store.ts           historical metadata, library, and memory index
   session-reader.ts       bounded conversation and tool timeline
-  session-state.ts        durable managed lanes and local annotations
+  session-state.ts        durable managed lanes, usage, and annotations
   preview-supervisor.ts   loopback web preview lifecycle and bounded logs
   workspace-inspector.ts  live Git status and bounded diff inspection
+  setup-diagnostics.ts    first-run / doctor-equivalent setup checks
   security.ts             local and remote access gate
 src/
+  App.tsx                 dashboard shell, views, event-stream client
+  privacy.tsx             presentation-only Privacy Mode aliases
   views/ControlView.tsx   command deck and approval queue
   views/WorkflowsView.tsx cross-session workflow command field
   views/UsageView.tsx     time- and dimension-based usage ledger
@@ -449,13 +560,19 @@ src/
   views/fleet/            status, editor, selectors, and telemetry panels
   views/ChangesView.tsx   live repository change workbench
   views/SessionWorkbench.tsx
-                            local session timeline, preview, and operations
+                          local Session Console (timeline, preview, operations)
   views/RemoteSessionWorkbench.tsx
-                            live remote conversation and safe controls
-  App.tsx                 dashboard shell and event-stream client
-  styles/fleet.css        Fleet-only presentation
-  styles/minimal-calm.css isolated quiet-theme presentation layer
+                          live remote conversation and safe controls
+  views/RuntimeIntelligencePanels.tsx
+                          Live-view process, port, test, and call panels
+e2e/                      Playwright journeys against a fake Grok CLI
+docs/                     architecture, roadmap, milestone records, artwork
+public/                   favicon, brand mark, theme assets
 ```
+
+Build outputs `dist/` (Vite client) and `dist-server/` (compiled API and host
+agent). Those directories are what `npm start`, `npm run serve`, `npm run agent`,
+and the published package run.
 
 The longer design and trust-boundary notes live in
 [docs/architecture.md](docs/architecture.md). Concrete edit routing and safety
@@ -463,12 +580,12 @@ invariants live in [docs/AGENT_GUIDE.md](docs/AGENT_GUIDE.md).
 
 ## Project status
 
-Grok UI is a community project. Its local monitor, control, workbench, runtime,
-usage, Git inspection, multi-machine monitoring, and secure remote-session
-paths are functional and covered by automated tests. Packed releases are
-installed and launched in isolation on macOS and Linux CI. Grok Build, ACP, and
-the fleet protocol can evolve, so compatibility fixes may be needed for future
-releases.
+Grok UI is a community project. Current tree version is **0.11.0**. Its local
+monitor, control, Session Console, runtime, usage, Git inspection,
+multi-machine monitoring, and secure remote-session paths are functional and
+covered by automated tests. Packed releases are installed and launched in
+isolation on macOS and Linux CI. Grok Build, ACP, and the fleet protocol can
+evolve, so compatibility fixes may be needed for future releases.
 
 ## License
 
